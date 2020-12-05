@@ -16,4 +16,4 @@ class Tempo:
         onset_env = librosa.onset.onset_strength(y=signal, sr=sr)
         tempo = librosa.beat.tempo(onset_envelope=onset_env, sr=sr)
         print(tempo)
-        return tempo
+        return tempo[0]

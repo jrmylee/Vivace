@@ -6,7 +6,7 @@ import scipy.io.wavfile
 import numpy as np
 from collections import OrderedDict
 import sys
-
+import math
 # Set this variable to "threading", "eventlet" or "gevent" to test the
 # different async modes, or leave it set to None for the application to choose
 # the best option based on installed packages.
@@ -57,11 +57,14 @@ def tempo(local=False):
     if local:
         my_audio = np.array(session['local_audio'], np.float32)
     else:
-        my_audio = np.array(session['gloabl_audio'], np.float32)
+        my_audio = np.array(session['global_audio'], np.float32)
 
-    tempo_obj.global_tempo(my_audio, sr)
+    tempo = math.floor(tempo_obj.global_tempo(my_audio, sr))
     session['local_audio'] = []
-    if not local:
+    if local:
+        emit('output local tempo', {'tempo' : tempo})
+    else:
+        emit('output global tempo', {'tempo' : tempo})
         session['global_audio'] = []
 
 @socketio.on('disconnect', namespace='/test')
@@ -72,9 +75,6 @@ def test_disconnect():
     #print(my_audio.view('int16'))
 
     # https://stackoverflow.com/a/18644461/466693
-    sample_rate = session['sample_rate']
-    my_audio = np.array(session['audio'], np.float32)
-    scipy.io.wavfile.write('out.wav', sample_rate, my_audio)
     session['global_audio'] = []
     session['local_audio'] = []
     print('Client disconnected', request.sid)
