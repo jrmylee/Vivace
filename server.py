@@ -1,4 +1,5 @@
 from tempo import Tempo
+from volume import Volume
 from flask import Flask, render_template, session, request
 from flask_socketio import SocketIO, emit, disconnect#, join_room, leave_room, close_room, rooms
 
@@ -7,6 +8,11 @@ import numpy as np
 from collections import OrderedDict
 import sys
 import math
+
+import statistics
+import librosa
+
+
 # Set this variable to "threading", "eventlet" or "gevent" to test the
 # different async modes, or leave it set to None for the application to choose
 # the best option based on installed packages.
@@ -17,6 +23,7 @@ app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app, binary=True, cors_allowed_origins="*")
 
 tempo_obj = Tempo()
+volume_obj = Volume()
 
 @app.route('/')
 def index():
@@ -29,6 +36,17 @@ def connect():
     session['global_audio'] = []
     session['local_audio'] = []
     emit('server_response', {'data': 'connected'})
+
+@socketio.on('piece', namespace="/test")
+def piece(str):
+    print("setting piece")
+    piece, sr = librosa.load(f'./db/{str}.mp3')
+    session['performance'] = piece
+    session['window'] = {
+        'start' : 0,
+        'end' : 3,
+        'sr' : sr
+    }
 
 @socketio.on('sample_rate', namespace='/test')
 def handle_my_sample_rate(sampleRate):
@@ -56,16 +74,37 @@ def tempo(local=False):
 
     if local:
         my_audio = np.array(session['local_audio'], np.float32)
+        perf_audio = session['performance']
+        start, end, rate = session['window']['start'], session['window']['end'], session['window']['sr']
+        perf_audio = perf_audio[start * rate : end * rate]
+
+        if (end + 3) * rate < len(session['performance']):
+            session['window']['start'] += 3
+            session['window']['end'] += 3
     else:
         my_audio = np.array(session['global_audio'], np.float32)
+        perf_audio = session['performance']
 
+    # live audio tempo and volume
     tempo = math.floor(tempo_obj.global_tempo(my_audio, sr))
+    spec = volume_obj.compute_power_dB(my_audio, sr)
+    spec = spec[spec > -1000]
+    mean_vol = statistics.mean(spec)
+    volume = math.floor(mean_vol)
+
+    p_tempo = math.floor(tempo_obj.global_tempo(perf_audio, sr))
+    p_spec = volume_obj.compute_power_dB(perf_audio, sr)
+    p_spec = p_spec[p_spec > -1000]
+    p_mean_vol = statistics.mean(p_spec)
+    p_volume = math.floor(p_mean_vol)
+
     session['local_audio'] = []
     if local:
-        emit('output local tempo', {'tempo' : tempo})
+        emit('output local tempo', {'tempo' : tempo, 'volume' : volume, 'p_tempo' : p_tempo, 'p_volume' : p_volume})
     else:
-        emit('output global tempo', {'tempo' : tempo})
+        emit('output global tempo', {'tempo' : tempo, 'volume' : volume})
         session['global_audio'] = []
+
 
 @socketio.on('disconnect', namespace='/test')
 def test_disconnect():
