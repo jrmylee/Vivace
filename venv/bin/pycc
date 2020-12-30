@@ -1,0 +1,3 @@
+#!/Users/jrmylee/Documents/dev/projects/mir/projects/vivace/venv/bin/python
+from numba.pycc import main
+main()
