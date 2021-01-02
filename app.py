@@ -19,7 +19,7 @@ async_mode = None
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app, binary=True, cors_allowed_origins="*")
+socketio = SocketIO(app, binary=True, logger=True, engineio_logger=True, cors_allowed_origins="*")
 
 tempo_obj = Tempo()
 volume_obj = Volume()
