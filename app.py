@@ -73,16 +73,16 @@ def tempo(local=False):
     print("tempo")
     if local:
         my_audio = np.array(session['local_audio'], np.float32)
-        perf_audio = session['performance']
-        start, end, rate = session['window']['start'], session['window']['end'], session['window']['sr']
-        perf_audio = perf_audio[start * rate : end * rate]
+        # perf_audio = session['performance']
+        # start, end, rate = session['window']['start'], session['window']['end'], session['window']['sr']
+        # perf_audio = perf_audio[start * rate : end * rate]
 
-        if (end + 3) * rate < len(session['performance']):
-            session['window']['start'] += 3
-            session['window']['end'] += 3
+        # if (end + 3) * rate < len(session['performance']):
+        #     session['window']['start'] += 3
+        #     session['window']['end'] += 3
     else:
         my_audio = np.array(session['global_audio'], np.float32)
-        perf_audio = session['performance']
+        # perf_audio = session['performance']
 
     # live audio tempo and volume
     tempo = math.floor(tempo_obj.global_tempo(my_audio, sr))
@@ -91,15 +91,15 @@ def tempo(local=False):
     mean_vol = statistics.mean(spec)
     volume = math.floor(mean_vol)
 
-    p_tempo = math.floor(tempo_obj.global_tempo(perf_audio, sr))
-    p_spec = volume_obj.compute_power_dB(perf_audio, sr)
-    p_spec = p_spec[p_spec > -1000]
-    p_mean_vol = statistics.mean(p_spec)
-    p_volume = math.floor(p_mean_vol)
+    # p_tempo = math.floor(tempo_obj.global_tempo(perf_audio, sr))
+    # p_spec = volume_obj.compute_power_dB(perf_audio, sr)
+    # p_spec = p_spec[p_spec > -1000]
+    # p_mean_vol = statistics.mean(p_spec)
+    # p_volume = math.floor(p_mean_vol)
 
     session['local_audio'] = []
     if local:
-        emit('output local tempo', {'tempo' : tempo, 'volume' : volume, 'p_tempo' : p_tempo, 'p_volume' : p_volume})
+        emit('output local tempo', {'tempo' : tempo, 'volume' : volume})
     else:
         emit('output global tempo', {'tempo' : tempo, 'volume' : volume})
         session['global_audio'] = []
