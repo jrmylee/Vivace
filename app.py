@@ -63,14 +63,14 @@ def print_message(audio):
     ## 'message' through a socket.io connection
     ## we print the socket ID and the message
     # tempo_obj.process(message)
-    values = OrderedDict(sorted(audio.items(), key=lambda t:int(t[0]))).values()
-    session['local_audio'] += values
-    session['global_audio'] += values
+    audio = OrderedDict(sorted(audio.items(), key=lambda t:int(t[0]))).values()
+    session['local_audio'] += audio
+    session['global_audio'] += audio
 
 @socketio.on('tempo', namespace="/test")
 def tempo(local=False):
     sr = session['sample_rate']
-
+    print("tempo")
     if local:
         my_audio = np.array(session['local_audio'], np.float32)
         perf_audio = session['performance']
@@ -118,4 +118,4 @@ def test_disconnect():
     print('Client disconnected', request.sid)
 
 if __name__ == '__main__':
-    socketio.run(app)
+    socketio.run(app, debug=False)
