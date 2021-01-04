@@ -17,7 +17,7 @@ import librosa
 # the best option based on installed packages.
 async_mode = None
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='../build', static_url_path='/')
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app, binary=True, logger=True, engineio_logger=True, cors_allowed_origins="*")
 
@@ -26,8 +26,7 @@ volume_obj = Volume()
 
 @app.route('/')
 def index():
-    return render_template('index.html')
-
+    return app.send_static_file('index.html')
 
 @socketio.on('connect', namespace="/test")
 def connect():
