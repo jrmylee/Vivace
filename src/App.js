@@ -12,7 +12,7 @@ class App extends React.Component {
   
   constructor(props) {
     super(props);
-    var socket = io("http://localhost:5000/test");
+    var socket = io("https://www.tonetwelve.com/test");
     this.state = {
       started : false,
       microphone : null,

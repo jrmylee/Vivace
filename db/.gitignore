@@ -1,6 +1,3 @@
-node_modules
-pycache
-venv
 
 # Elastic Beanstalk Files
 .elasticbeanstalk/*

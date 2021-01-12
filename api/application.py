@@ -1,3 +1,6 @@
+from gevent import monkey
+monkey.patch_all()
+
 from tempo import Tempo
 from volume import Volume
 from flask import Flask, render_template, session, request
@@ -13,20 +16,20 @@ import librosa
 
 
 # Set this variable to "threading", "eventlet" or "gevent" to test the
-# different async modes, or leave it set to None for the application to choose
+# different async modes, or leave it set to None for the applicationlication to choose
 # the best option based on installed packages.
 async_mode = None
 
-app = Flask(__name__, static_folder='../build', static_url_path='/')
-app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app, binary=True, logger=True, engineio_logger=True, cors_allowed_origins="*")
+application = Flask(__name__, static_folder='./build', static_url_path='/')
+application.config['SECRET_KEY'] = 'secret!'
+socketio = SocketIO(application, binary=True, logger=True, engineio_logger=True, cors_allowed_origins="*")
 
 tempo_obj = Tempo()
 volume_obj = Volume()
 
-@app.route('/')
+@application.route('/')
 def index():
-    return app.send_static_file('index.html')
+    return application.send_static_file('index.html')
 
 @socketio.on('connect', namespace="/test")
 def connect():
@@ -117,4 +120,4 @@ def test_disconnect():
     print('Client disconnected', request.sid)
 
 if __name__ == '__main__':
-    socketio.run(app, debug=False)
+    socketio.run(application, debug=False)
