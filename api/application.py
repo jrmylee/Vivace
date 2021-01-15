@@ -38,7 +38,7 @@ def connect():
 @socketio.on('piece', namespace="/test")
 def piece(str):
     print("setting piece")
-    piece = np.loadtxt(f'./db/{str}.txt')
+    piece, sr = librosa.load(f'./db/{str}.mp3')
     session['performance'] = piece
     session['window'] = {
         'start' : 0,
