@@ -17,7 +17,7 @@ import librosa
 # the best option based on installed packages.
 async_mode = None
 
-application = Flask(__name__, static_folder='./build', static_url_path='/')
+application = Flask(__name__, static_folder='../build', static_url_path='/')
 application.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(application, binary=True, cors_allowed_origins="*")
 
