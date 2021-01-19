@@ -19,7 +19,7 @@ async_mode = None
 
 application = Flask(__name__, static_folder='../build', static_url_path='/')
 application.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(application, binary=True, cors_allowed_origins="*")
+socketio = SocketIO(application, logger=True, engineio_logger=True, binary=True, cors_allowed_origins="*")
 
 tempo_obj = Tempo()
 volume_obj = Volume()
@@ -33,6 +33,13 @@ def connect():
     print("connect");
     session['global_audio'] = []
     session['local_audio'] = []
+    piece, sr = librosa.load(f'./db/{str}.mp3')
+    session['performance'] = piece
+    session['window'] = {
+        'start' : 0,
+        'end' : 1,
+        'sr' : 22050
+    }
     emit('server_response', {'data': 'connected'})
 
 @socketio.on('piece', namespace="/test")
@@ -42,7 +49,7 @@ def piece(str):
     session['performance'] = piece
     session['window'] = {
         'start' : 0,
-        'end' : 3,
+        'end' : 1,
         'sr' : 22050
     }
 
@@ -76,9 +83,9 @@ def tempo(local=False):
         start, end, rate = session['window']['start'], session['window']['end'], session['window']['sr']
         perf_audio = perf_audio[start * rate : end * rate]
 
-        if (end + 3) * rate < len(session['performance']):
-            session['window']['start'] += 3
-            session['window']['end'] += 3
+        if (end + 1) * rate < len(session['performance']):
+            session['window']['start'] += 1
+            session['window']['end'] += 1
     else:
         my_audio = np.array(session['global_audio'], np.float32)
         perf_audio = session['performance']
@@ -117,4 +124,4 @@ def test_disconnect():
     print('Client disconnected', request.sid)
 
 if __name__ == '__main__':
-    socketio.run(application, debug=False, host='0.0.0.0', port=80)
+    socketio.run(application, debug=False, host='0.0.0.0', port=5000)

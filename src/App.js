@@ -39,12 +39,12 @@ class App extends React.Component {
   enterLoading = () => {
     var ob = this;
     this.state.socket.connect();
-    this.state.socket.emit('piece', 'widmung/trifonov')
     navigator.mediaDevices
       .getUserMedia({ audio: true }).then((stream) => {
         var audioContext = new (window.AudioContext || window.webkitAudioContext)();
         var source = audioContext.createMediaStreamSource(stream);
         var node = audioContext.createScriptProcessor(4096, 1, 1);
+        var winLength = 1;
         this.state.socket.emit('sample_rate', audioContext.sampleRate);
         
         node.onaudioprocess = (audioProcessingEvent) => {
@@ -58,17 +58,17 @@ class App extends React.Component {
           this.state.socket.emit("message", obj);
           this.setState({lenSamples : this.state.lenSamples + 1})
           // take 3 seconds of samples
-          if(this.state.lenSamples >= (3 * audioContext.sampleRate) / 4096 ) {
+          if(this.state.lenSamples >= (winLength * audioContext.sampleRate) / 4096 ) {
             this.setState({lenSamples : 0 });
             this.state.socket.emit('tempo', true);
           }
         }
         this.state.socket.on('output local tempo', ({tempo, volume, p_volume, p_tempo}) => {
           this.setState({
-            tempoData: [...this.state.tempoData, {x: this.state.tempoData.length * 3, y: tempo}],
-            pTempoData: [...this.state.pTempoData, {x: this.state.tempoData.length * 3, y: p_tempo}],
-            pVolumeData: [...this.state.pVolumeData, {x: this.state.volumeData.length * 3, y: p_volume}],
-            volumeData: [...this.state.volumeData, {x: this.state.volumeData.length * 3, y: volume}],
+            tempoData: [...this.state.tempoData, {x: this.state.tempoData.length * winLength, y: tempo}],
+            pTempoData: [...this.state.pTempoData, {x: this.state.tempoData.length * winLength, y: p_tempo}],
+            pVolumeData: [...this.state.pVolumeData, {x: this.state.volumeData.length * winLength, y: p_volume}],
+            volumeData: [...this.state.volumeData, {x: this.state.volumeData.length * winLength, y: volume}],
             tempoVolume: [{x: tempo, y: volume}],
             pTempoVolume: [{x: p_tempo, y: p_volume}]
           })
