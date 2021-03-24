@@ -19,10 +19,41 @@ async_mode = None
 
 application = Flask(__name__, static_folder='../build', static_url_path='/')
 application.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(application, logger=True, engineio_logger=True, binary=True, cors_allowed_origins="*")
+socketio = SocketIO(application, logger=True, binary=True, cors_allowed_origins="*")
 
 tempo_obj = Tempo()
 volume_obj = Volume()
+
+def load_song(path_to, win_len=3):
+    x, sr = librosa.load(path_to)
+    win = sr * win_len
+    lx = len(x)
+    xp_len = int(np.ceil(lx/win)) * win
+    x.resize(xp_len)
+    x_chunks = x.reshape((len(x) // (sr * win_len), (sr * win_len)))
+    return x_chunks
+
+def precompute_t_v(x_chunks, sr=22050):
+    tempos, volumes = [], []
+    for xc in x_chunks:
+        tempos.append(np.floor(tempo_obj.global_tempo(xc, sr)))
+        volumes.append(volume_obj.get_average_power(xc, sr))
+    return tempos, volumes
+
+def get_songs():
+    widmung = load_song('./db/up_down.aif')
+    desabends = load_song('./db/increasing.aif')
+    scriabin_etude_op_42_no_5 = load_song('./db/decreasing.aif')
+
+    print("songs loaded!")
+    return widmung, desabends, scriabin_etude_op_42_no_5
+
+one, two, three = get_songs()
+songs_mapping = {
+    "widmung" : precompute_t_v(one),
+    "desabends" : precompute_t_v(two),
+    "etude" : precompute_t_v(three)
+}
 
 @application.route('/')
 def index():
@@ -30,98 +61,57 @@ def index():
 
 @socketio.on('connect', namespace="/test")
 def connect():
-    print("connect");
     session['global_audio'] = []
     session['local_audio'] = []
-    piece, sr = librosa.load(f'./db/{str}.mp3')
-    session['performance'] = piece
-    session['window'] = {
-        'start' : 0,
-        'end' : 1,
-        'sr' : 22050
-    }
     emit('server_response', {'data': 'connected'})
-
-@socketio.on('piece', namespace="/test")
-def piece(str):
-    print("setting piece")
-    piece, sr = librosa.load(f'./db/{str}.mp3')
-    session['performance'] = piece
-    session['window'] = {
-        'start' : 0,
-        'end' : 1,
-        'sr' : 22050
-    }
 
 @socketio.on('sample_rate', namespace='/test')
 def handle_my_sample_rate(sampleRate):
     session['sample_rate'] = sampleRate
-    # send some message to front
-    session['receive_count'] = session.get('receive_count', 0) + 1
-    emit('my_response', {'data': "sampleRate : %s" % sampleRate, 'count': session['receive_count'] })
+    session['win_index'] = 0
 
-## If we wanted to create a new websocket endpoint,
-## use this decorator, passing in the name of the
-## event we wish to listen out for
-@socketio.on('message', namespace="/test")
+@socketio.on('send_audio', namespace="/test")
 def print_message(audio):
-    ## When we receive a new event of type
-    ## 'message' through a socket.io connection
-    ## we print the socket ID and the message
-    # tempo_obj.process(message)
     audio = OrderedDict(sorted(audio.items(), key=lambda t:int(t[0]))).values()
     session['local_audio'] += audio
     session['global_audio'] += audio
 
 @socketio.on('tempo', namespace="/test")
-def tempo(local=False):
-    sr = session['sample_rate']
+def tempo(song, local=False):
+    sr, p_sr = session['sample_rate'], 22050
     print("tempo")
     if local:
-        my_audio = np.array(session['local_audio'], np.float32)
-        perf_audio = session['performance']
-        start, end, rate = session['window']['start'], session['window']['end'], session['window']['sr']
-        perf_audio = perf_audio[start * rate : end * rate]
+        # my_audio = np.array(session['local_audio'], np.float32)
 
-        if (end + 1) * rate < len(session['performance']):
-            session['window']['start'] += 1
-            session['window']['end'] += 1
+        # Professional Recording signal
+        index = session['win_index']
+        if (index + 1) < len(songs_mapping[song][0]):
+            session['win_index'] += 1
     else:
         my_audio = np.array(session['global_audio'], np.float32)
-        perf_audio = session['performance']
+        perf_audio = songs_mapping[song]
 
     # live audio tempo and volume
-    tempo = math.floor(tempo_obj.global_tempo(my_audio, sr))
-    spec = volume_obj.compute_power_dB(my_audio, sr)
-    spec = spec[spec > -1000]
-    mean_vol = statistics.mean(spec)
-    volume = math.floor(mean_vol)
+    # tempo = math.floor(tempo_obj.global_tempo(my_audio, sr))
+    # avg_power = volume_obj.get_average_power(my_audio, sr)
 
-    p_tempo = math.floor(tempo_obj.global_tempo(perf_audio, sr))
-    p_spec = volume_obj.compute_power_dB(perf_audio, sr)
-    p_spec = p_spec[p_spec > -1000]
-    p_mean_vol = statistics.mean(p_spec)
-    p_volume = math.floor(p_mean_vol)
+    p_tempo = songs_mapping[song][0][index]
+    p_avg_power = songs_mapping[song][1][index]
 
     session['local_audio'] = []
     if local:
-        emit('output local tempo', {'tempo' : tempo, 'volume' : volume, 'p_tempo' : p_tempo, 'p_volume' : p_volume})
-    else:
-        emit('output global tempo', {'tempo' : tempo, 'volume' : volume})
-        session['global_audio'] = []
+        emit('output local tempo', {'p_tempo' : p_tempo, 'p_volume' : p_avg_power})
+    # else:
+    #     emit('output global tempo', {'tempo' : tempo, 'volume' : volume})
+    #     session['global_audio'] = []
 
 
 @socketio.on('disconnect', namespace='/test')
 def test_disconnect():
     print("disconnect")
-    #my_audio = np.array(session['audio'], np.float32)
-    #scipy.io.wavfile.write('out.wav', 44100, my_audio.view('int16'))
-    #print(my_audio.view('int16'))
-
-    # https://stackoverflow.com/a/18644461/466693
     session['global_audio'] = []
     session['local_audio'] = []
     print('Client disconnected', request.sid)
 
 if __name__ == '__main__':
-    socketio.run(application, debug=False, host='0.0.0.0', port=5000)
+    socketio.run(application, debug=True, host='0.0.0.0', port=5000)

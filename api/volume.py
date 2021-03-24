@@ -1,4 +1,6 @@
 import numpy as np
+import statistics
+import math
 
 class Volume:
     def __init__(self, win_len_sec=0.1, power_ref=10**(-12)):
@@ -23,3 +25,12 @@ class Volume:
         win = np.ones(win_len) / win_len
         power_db = 10 * np.log10(np.convolve(x**2, win, mode='same') / self.power_ref)    
         return power_db
+    
+    def get_average_power(self, x, fs):
+        win_len = round(self.win_len_sec * fs)
+        win = np.ones(win_len) / win_len
+        spec = 10 * np.log10(np.convolve(x**2, win, mode='same') / self.power_ref)
+        spec = spec[spec > -1000]
+        mean_vol = statistics.mean(spec)
+        volume = math.floor(mean_vol)
+        return volume

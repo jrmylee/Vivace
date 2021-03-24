@@ -12,7 +12,7 @@ class App extends React.Component {
   
   constructor(props) {
     super(props);
-    var socket = io("https://tonetwelve.com/test");
+    var socket = io("http://localhost:5000/test");
     this.state = {
       started : false,
       microphone : null,
@@ -24,18 +24,12 @@ class App extends React.Component {
       pTempoData: [],
       volumeData: [],
       pVolumeData: [],
-      tempoVolume: [{x: 0, y: 0}]
+      tempoVolume: [{x: 0, y: 0}],
+      song: "widmung"
     };
+
+    this.pieceChange = this.pieceChange.bind(this);
   }
-  pieces = (
-    <Menu>
-      <Menu.Item>
-        <a target="_blank" rel="noopener noreferrer">
-          Schumann/Liszt Widmung(Trifonov)
-        </a>
-      </Menu.Item>
-    </Menu>
-  )
   enterLoading = () => {
     var ob = this;
     this.state.socket.connect();
@@ -55,21 +49,21 @@ class App extends React.Component {
           left.forEach((elem, i) => {
             obj[i] = elem;
           })
-          this.state.socket.emit("message", obj);
+          this.state.socket.emit("send_audio", obj);
           this.setState({lenSamples : this.state.lenSamples + 1})
           // take 3 seconds of samples
-          if(this.state.lenSamples >= (winLength * audioContext.sampleRate) / 4096 ) {
+          if(this.state.lenSamples >= 3 * (winLength * audioContext.sampleRate) / 4096 ) {
             this.setState({lenSamples : 0 });
-            this.state.socket.emit('tempo', true);
+            this.state.socket.emit('tempo', this.state.song, true);
           }
         }
         this.state.socket.on('output local tempo', ({tempo, volume, p_volume, p_tempo}) => {
           this.setState({
-            tempoData: [...this.state.tempoData, {x: this.state.tempoData.length * winLength, y: tempo}],
-            pTempoData: [...this.state.pTempoData, {x: this.state.tempoData.length * winLength, y: p_tempo}],
-            pVolumeData: [...this.state.pVolumeData, {x: this.state.volumeData.length * winLength, y: p_volume}],
-            volumeData: [...this.state.volumeData, {x: this.state.volumeData.length * winLength, y: volume}],
-            tempoVolume: [{x: tempo, y: volume}],
+            // tempoData: [...this.state.tempoData, {x: this.state.tempoData.length * winLength, y: tempo}],
+            pTempoData: [...this.state.pTempoData, {x: this.state.pTempoData.length * winLength, y: p_tempo}],
+            pVolumeData: [...this.state.pVolumeData, {x: this.state.pVolumeData.length * winLength, y: p_volume}],
+            // volumeData: [...this.state.volumeData, {x: this.state.volumeData.length * winLength, y: volume}],
+            // tempoVolume: [{x: tempo, y: volume}],
             pTempoVolume: [{x: p_tempo, y: p_volume}]
           })
         })
@@ -91,7 +85,7 @@ class App extends React.Component {
   };
   stop = () => {
     if(this.state.source){
-      this.state.socket.emit("tempo", false);
+      this.state.socket.emit("tempo", this.state.song, false);
       console.log(this.state.signal);
       this.state.node.disconnect();
       this.state.source.disconnect();
@@ -101,8 +95,11 @@ class App extends React.Component {
       });
     }
   };
-  pieceChange = () => {
-
+  pieceChange = (song) => {
+    console.log(song);
+    this.setState({
+      song: song
+    })
   };
   windowChange = () => {
 
@@ -127,16 +124,16 @@ class App extends React.Component {
             theme={VictoryTheme.material}
           >
             
-            <VictoryLine
-              interpolation="natural"
+            {/* <VictoryLine
+              // interpolation="natural"
               style={{
                 data: { stroke: blue.primary },
                 parent: { border: "1px solid #ccc"}
               }}
               data= {this.state.tempoData}
-            />
+            /> */}
             <VictoryLine
-              interpolation="natural"
+              // interpolation="natural"
               style={{
                 data: { stroke: cyan.primary },
                 parent: { border: "1px solid #ccc"}
@@ -148,13 +145,13 @@ class App extends React.Component {
           <VictoryChart
             theme={VictoryTheme.material}
           >
-            <VictoryLine
+            {/* <VictoryLine
               style={{
                 data: { stroke: blue.primary },
                 parent: { border: "1px solid #ccc"}
               }}
               data= {this.state.volumeData}
-            />
+            /> */}
             <VictoryLine
               style={{
                 data: { stroke: cyan.primary },
@@ -168,13 +165,13 @@ class App extends React.Component {
             theme={VictoryTheme.material}
             domain={{ x: [70, 200], y: [70, 150] }}
           >
-            <VictoryScatter
+            {/* <VictoryScatter
               style={{
                 data: { fill: blue.primary },
                 parent: { border: "1px solid #ccc"}
               }}
               data= {this.state.tempoVolume}
-            />
+            /> */}
             <VictoryScatter
               style={{
                 data: { fill: cyan.primary },
@@ -196,8 +193,14 @@ class App extends React.Component {
               <Button type="danger" onClick={() => this.stop()}>
                 Stop
               </Button>
-              <Select defaultValue="widmung" style={{ width: 300 }} onChange={() => this.pieceChange()}>
+              <Select defaultValue="widmung" style={{ width: 300 }} onChange={this.pieceChange}>
                 <Option value="widmung">Widmung by Schumann/Liszt</Option>
+                <Option value="etude">
+                  Scriabin Etude Op. 42 no 5
+                </Option>
+                <Option value="desabends">
+                  Schumann Fantasiestucke Op. 12 no 1
+                </Option>
               </Select>
             </div>
           </div>
