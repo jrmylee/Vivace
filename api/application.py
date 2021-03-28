@@ -1,5 +1,6 @@
 from tempo import Tempo
 from volume import Volume
+from db import Database
 from flask import Flask, render_template, session, request
 from flask_socketio import SocketIO, emit, disconnect#, join_room, leave_room, close_room, rooms
 
@@ -23,8 +24,9 @@ socketio = SocketIO(application, logger=True, binary=True, cors_allowed_origins=
 
 tempo_obj = Tempo()
 volume_obj = Volume()
+database = Database()
 
-def load_song(path_to, win_len=3):
+def load_song(path_to, win_len=10):
     x, sr = librosa.load(path_to)
     win = sr * win_len
     lx = len(x)
@@ -41,9 +43,9 @@ def precompute_t_v(x_chunks, sr=22050):
     return tempos, volumes
 
 def get_songs():
-    widmung = load_song('./db/up_down.aif')
-    desabends = load_song('./db/increasing.aif')
-    scriabin_etude_op_42_no_5 = load_song('./db/decreasing.aif')
+    widmung = load_song('./db/widmung/trifonov.mp3')
+    desabends = load_song('./db/desabends/rec1.mp3')
+    scriabin_etude_op_42_no_5 = load_song('./db/scriabin_etude1/1.mp3')
 
     print("songs loaded!")
     return widmung, desabends, scriabin_etude_op_42_no_5
