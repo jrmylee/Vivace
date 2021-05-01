@@ -31,6 +31,18 @@ class Volume:
         win = np.ones(win_len) / win_len
         spec = 10 * np.log10(np.convolve(x**2, win, mode='same') / self.power_ref)
         spec = spec[spec > -1000]
+        if len(spec) == 0:
+            return 0
         mean_vol = statistics.mean(spec)
         volume = math.floor(mean_vol)
         return volume
+
+    def overlap_windowed_volume(self, signal, hop_size=1, win_len=3, sr=22050):
+        tempos = []
+        for i in range(0, len(signal) - win_len * sr, hop_size * sr):
+            y_hat = signal[i : i + win_len * sr]
+            tempo = self.get_average_power(y_hat, sr)
+            tempos.append(tempo)
+
+        return tempos[win_len // 2 :]
+    

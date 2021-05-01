@@ -9,7 +9,8 @@ class Database:
                 self.rows.append({
                     'title': row[0],
                     'composer': row[1], 
-                    'perfomer': row[2],
+                    'performer': row[2],
                     'path' : 'db/' + row[0].lower().replace(" ", "_") + '/' + row[2].lower() + ".mp3"
                 })
-        print(self.rows)
+    def get_songs(self):
+        return self.rows
