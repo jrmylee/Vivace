@@ -3,7 +3,7 @@ import React from 'react';
 import 'antd/dist/antd.css'; // or 'antd/dist/antd.less'
 import 'microphone-stream';
 import io from 'socket.io-client';
-import { VictoryChart, VictoryLine, VictoryTheme, VictoryScatter, VictoryLegend } from "victory";
+import { VictoryChart, VictoryLine, VictoryLabel, VictoryTheme, VictoryScatter, VictoryLegend } from "victory";
 import { blue, yellow, cyan, orange, green, magenta } from '@ant-design/colors';
 
 const { Option } = Select;
@@ -31,16 +31,6 @@ class App extends React.Component {
     this.pieceChange = this.pieceChange.bind(this);
   }
   componentDidMount() {
-    fetch("http://localhost:5000/songs")
-      .then(res => res.json())
-      .then(
-        (result) => {
-          console.log(result);
-          this.setState({
-            songs: result
-          })
-        }
-      )
   }
   enterLoading = () => {
     var ob = this;
@@ -69,14 +59,14 @@ class App extends React.Component {
             this.state.socket.emit('tempo', this.state.song, true);
           }
         }
-        this.state.socket.on('output local tempo', ({tempo, volume, p_volumes, p_tempos}) => {
+        this.state.socket.on('output local tempo', ({tempo, volume, p_volume, p_tempo}) => {
           this.setState({
             tempoData: [...this.state.tempoData, {x: this.state.tempoData.length * winLength, y: tempo}],
             // pTempoData: [...this.state.pTempoData, {x: this.state.pTempoData.length * winLength, y: p_tempo}],
             // pVolumeData: [...this.state.pVolumeData, {x: this.state.pVolumeData.length * winLength, y: p_volume}],
             volumeData: [...this.state.volumeData, {x: this.state.volumeData.length * winLength, y: volume}],
             tempoVolume: [{x: tempo, y: volume}],
-            pTempoVolumes: {p_volumes, p_tempos}
+            pTempoVolumes: {p_volume, p_tempo}
           })
         })
         this.state.socket.on('output global tempo', ({tempo, volume}) => {
@@ -128,29 +118,29 @@ class App extends React.Component {
       data= {this.state.tempoVolume}
       labels={({}) => "Me"}
     />];
-    // if(this.state.pTempoVolumes){
-    //   console.log(this.state.pTempoVolumes)
-    //   var colors = this.getColors();
-    //   Object.keys(this.state.pTempoVolumes).forEach((performer, i) => {
-    //     var volume = this.state.pTempoVolumes.p_volumes[performer];
-    //     var tempo = this.state.pTempoVolumes.p_tempos[performer];
-    //     var tempoVolume = [{x : tempo, y : volume, label : performer}];  
-    //     scatters.push(<VictoryScatter
-    //       key={i}
-    //       style={{
-    //         data: { fill: colors[i][0] },
-    //         parent: { border: "1px solid #ccc"}
-    //       }}
-    //       data={tempoVolume}
-    //       labels={({ datum }) => datum.label}
-    //     />);
-    //   })
-    // }
+    if(this.state.pTempoVolumes){
+      console.log(this.state.pTempoVolumes)
+      var colors = this.getColors();
+      Object.keys(this.state.pTempoVolumes.p_tempo).forEach((performer, i) => {
+        var volume = this.state.pTempoVolumes.p_volume[performer];
+        var tempo = this.state.pTempoVolumes.p_tempo[performer];
+        var tempoVolume = [{x : tempo, y : volume, label : performer}];  
+        scatters.push(<VictoryScatter
+          key={i}
+          style={{
+            data: { fill: colors[i][0] },
+            parent: { border: "1px solid #ccc"}
+          }}
+          data={tempoVolume}
+          labels={({ datum }) => datum.label}
+        />);
+      })
+    }
     return (
       <>
         <div className="main-container">
           <div className="info-container">
-          <h3>Tempo(BPM)</h3>
+          {/* <h3>Tempo(BPM)</h3>
           <VictoryChart
             theme={VictoryTheme.material}
           >
@@ -178,7 +168,7 @@ class App extends React.Component {
               data= {this.state.volumeData}
             />
           </VictoryChart>
-          
+           */}
           <VictoryChart
             theme={VictoryTheme.material}
             domain={{ x: [80, 160], y: [70, 100] }}

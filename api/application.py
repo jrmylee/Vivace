@@ -1,6 +1,5 @@
 from tempo import Tempo
 from volume import Volume
-from db import Database
 from flask import Flask, render_template, session, request
 from flask_socketio import SocketIO, emit, disconnect#, join_room, leave_room, close_room, rooms
 from flask_cors import CORS, cross_origin
@@ -10,9 +9,10 @@ from collections import OrderedDict
 import math
 from scipy.signal import medfilt
 
-import statistics
-import librosa
-import csv
+from pymongo import MongoClient
+
+client = MongoClient('localhost', 27017)
+db = client['vivace_db']
 
 # Set this variable to "threading", "eventlet" or "gevent" to test the
 # different async modes, or leave it set to None for the applicationlication to choose
@@ -28,88 +28,10 @@ socketio = SocketIO(application, logger=True, binary=True, cors_allowed_origins=
 
 tempo_obj = Tempo()
 volume_obj = Volume()
-database = Database()
-
-def load_song(path_to, win_len=3):
-    x, sr = librosa.load(path_to)
-    win = sr * win_len
-    lx = len(x)
-    xp_len = int(np.ceil(lx/win)) * win
-    x.resize(xp_len)
-    x_chunks = x.reshape((len(x) // (sr * win_len), (sr * win_len)))
-    return x_chunks
-
-# def precompute_t_v(x_chunks, sr=22050):
-#     tempos, volumes = [], []
-#     tempo, volume = [], []
-#     for xc in x_chunks:
-#         tempo.append(np.floor(tempo_obj.global_tempo(xc, sr)))
-#         volume.append(volume_obj.get_average_power(xc, sr))
-
-#         if len(tempo) == 3:
-#             tempos.append(medfilt(tempo)[1])
-#             volumes.append(medfilt(volume)[1])
-#             tempo, volume = [], []
-
-#     return tempos, volumes
-
-def precompute_t_v(signal, sr=22050):
-    tempos = tempo_obj.overlap_windowed_tempo(signal)
-    volumes = volume_obj.overlap_windowed_volume(signal)
-
-    return tempos, volumes
-
-
-# returns tempo-volume data for songs in db
-# def get_songs_from_db():
-#     songs = {}
-#     for song_data in database.get_songs():
-#         song = load_song(song_data['path'], win_len=1)
-#         tv = precompute_t_v(song)
-#         if song_data['title'] in songs:
-#             songs[song_data['title']][song_data['performer']] = tv
-#         else:
-#             songs[song_data['title']] = {
-#                 song_data['performer']: tv
-#             }
-#     print(songs)
-#     return songs
-
-def get_songs_from_db():
-    songs = {}
-    for song_data in database.get_songs():
-        song, sr = librosa.load(song_data['path'])
-        tv = precompute_t_v(song)
-        print(song_data['performer'] + ": " + song_data['title'])
-        if song_data['title'] in songs:
-            songs[song_data['title']][song_data['performer']] = tv
-        else:
-            songs[song_data['title']] = {
-                song_data['performer']: tv
-            }
-    return songs
-
-songs_mapping = get_songs_from_db()
 
 @application.route('/')
 def index():
     return application.send_static_file('index.html')
-
-@application.route('/songs')
-@cross_origin()
-def songs():
-    songs = {}
-    with open('db/db.csv', 'r') as csvfile:
-        csvreader = csv.reader(csvfile)
-        next(csvreader)
-        for row in csvreader:
-            songs[row[0]] = {
-                'title': row[0],
-                'composer': row[1], 
-                'perfomer': row[2],
-                'path' : 'db/' + row[0].lower().replace(" ", "_") + '/' + row[2].lower() + ".mp3"
-            }
-    return songs
 
 @socketio.on('connect', namespace="/test")
 def connect():
@@ -145,16 +67,17 @@ def tempo(song, local=False):
     p_tempos = {}
     p_volumes = {}
 
-        # Professional Recording signal
+    # Professional Recording signal
     index = session['win_index']
-    first_key = list(songs_mapping[song].keys())[0]
-    if (index + 1) < len(songs_mapping[song][first_key][0]):
-        session['win_index'] += 1
+    session['win_index'] += 1
 
-    for performance in songs_mapping[song]:
-        p_tempos[performance] = songs_mapping[song][performance][0][index]
-        p_volumes[performance] = songs_mapping[song][performance][1][index]
+    for performance in db.performances.find({"title" : song}):
+        if index < len(performance["tempos"]):
+            performer = performance["performer"]
+            p_tempos[performer] = performance["tempos"][index]
+            p_volumes[performer] = performance["volumes"][index]
 
+    print(p_tempos, p_volumes)
     # pop first 1 second from audio 
     session['local_audio'] = session['local_audio'][sr * 1 : ]
     if local:
