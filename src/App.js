@@ -24,7 +24,7 @@ class App extends React.Component {
       volumeData: [],
       tempoVolume: [{x: 0, y: 0}],
       pTempoVolumes: null,
-      song: "Prelude in E Minor",
+      song: "Gymnopedie",
       printed: false
     };
 
@@ -171,7 +171,7 @@ class App extends React.Component {
            */}
           <VictoryChart
             theme={VictoryTheme.material}
-            domain={{ x: [80, 160], y: [70, 100] }}
+            domain={{ x: [50, 200], y: [0, 200] }}
           >
             {scatters}
           </VictoryChart>
@@ -184,13 +184,31 @@ class App extends React.Component {
               <Button type="danger" onClick={() => this.stop()}>
                 Stop
               </Button>
-              <Select defaultValue="Prelude in E Minor" style={{ width: 300 }} onChange={this.pieceChange}>
-                <Option value="Widmung">Schumann-Liszt Widmung</Option>
-                <Option value="Prelude in E Minor">
-                  Chopin Prelude in E Minor
+              <Select defaultValue="Gymnopedie" style={{ width: 300 }} onChange={this.pieceChange}>
+                <Option value="Gymnopedie">Satie Gymnopedie</Option>
+                <Option value="Nocturne">
+                  Chopin Nocturne Op. 9 No. 2
                 </Option>
-                <Option value="Fantasie Impromptu">
-                  Chopin Fantasie Impromptu
+                <Option value="Waltz 64 2">
+                  Chopin Waltz Op. 64 No. 2
+                </Option>
+                <Option value="Waltz 69 1">Chopin Waltz Op. 69 No. 1</Option>
+                <Option value="Waltz 69 2">
+                  Chopin Waltz Op. 69 No. 2
+                </Option>
+                <Option value="Impromptu No 3">
+                  Schubert Impromptu No. 3
+                </Option>
+                <Option value="Waltz A Minor">Chopin Waltz in Am</Option>
+                <Option value="Fur Elise">
+                  Beethoven Fur Elise
+                </Option>
+                <Option value="Traumerei">
+                  Schumann Traumerei
+                </Option>
+                <Option value="Sonata">Mozart Sonata in C K.545</Option>
+                <Option value="Minuet in F">
+                  Bach Minuet in F
                 </Option>
               </Select>
             </div>

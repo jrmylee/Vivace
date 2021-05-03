@@ -31,19 +31,20 @@ def push_to_db():
     songs = {}
     performances = db.performances
     for song_data in get_songs():
-        song, sr = librosa.load(song_data['path'])
-        tempos, volumes = precompute_t_v(song)
-        print(song_data['performer'] + ": " + song_data['title'])
-        title, performer = song_data['title'], song_data['performer']
+        if performances.find({'title' : song_data['title'], 'performer' : song_data['performer']}).count() == 0:
+            song, sr = librosa.load(song_data['path'])
+            tempos, volumes = precompute_t_v(song)
+            print(song_data['performer'] + ": " + song_data['title'])
+            title, performer = song_data['title'], song_data['performer']
 
-        performance = {
-            "title" : title,
-            "performer" : performer,
-            "tempos" : tempos,
-            "volumes" : volumes
-        }
-        perf_id = performances.insert_one(performance).inserted_id
-        print(perf_id)
+            performance = {
+                "title" : title,
+                "performer" : performer,
+                "tempos" : tempos,
+                "volumes" : volumes
+            }
+            perf_id = performances.insert_one(performance).inserted_id
+            print(perf_id)
     return songs
 
 songs_mapping = push_to_db()
