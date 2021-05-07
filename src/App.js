@@ -8,6 +8,7 @@ import { blue, yellow, cyan, orange, green, magenta } from '@ant-design/colors';
 
 const { Option } = Select;
 
+
 class App extends React.Component {
   
   constructor(props) {
@@ -25,13 +26,14 @@ class App extends React.Component {
       tempoVolume: [{x: 0, y: 0}],
       pTempoVolumes: null,
       song: "Gymnopedie",
-      printed: false
+      printed: false,
     };
 
     this.pieceChange = this.pieceChange.bind(this);
   }
   componentDidMount() {
   }
+
   enterLoading = () => {
     var ob = this;
     this.state.socket.connect();
@@ -81,7 +83,8 @@ class App extends React.Component {
 
         this.setState({
           source: source,
-          node: node
+          node: node,
+          stopped: false
         })
       });
   };
@@ -92,6 +95,7 @@ class App extends React.Component {
       this.setState({
         source: null,
         node: null,
+        stopped: true
       });
     }
   };
@@ -108,6 +112,8 @@ class App extends React.Component {
     
     return [[magenta.primary, "Magenta"], [cyan.primary, "Cyan"], [yellow.primary, "Yellow"], [orange.primary, "Orange"], [green.primary, "Green"]];
   }
+
+
   render() {
     var scatters = [<VictoryScatter
       key="1"
@@ -119,7 +125,6 @@ class App extends React.Component {
       labels={({}) => "Me"}
     />];
     if(this.state.pTempoVolumes){
-      console.log(this.state.pTempoVolumes)
       var colors = this.getColors();
       Object.keys(this.state.pTempoVolumes.p_tempo).forEach((performer, i) => {
         var volume = this.state.pTempoVolumes.p_volume[performer];
@@ -135,6 +140,17 @@ class App extends React.Component {
           labels={({ datum }) => datum.label}
         />);
       })
+    }
+    var Heading = (props) => {
+      if (this.state.stopped == true) {
+        var artists = Object.keys(this.state.pTempoVolumes.p_tempo);
+        const randomElement = artists[Math.floor(Math.random() * artists.length)];
+
+        return <h1>You're most playing like {randomElement}!</h1>;
+      }else{
+        return <div></div>;
+      }
+      
     }
     return (
       <>
@@ -169,6 +185,7 @@ class App extends React.Component {
             />
           </VictoryChart>
            */}
+          <Heading/>
           <VictoryChart
             theme={VictoryTheme.material}
             domain={{ x: [50, 200], y: [0, 200] }}
@@ -185,6 +202,7 @@ class App extends React.Component {
             />
           </VictoryChart>
           </div>
+
           <div className="flex-row">
             <div className="center-console">
               <Button type="primary" onClick={() => this.enterLoading()}>
