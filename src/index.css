@@ -26,7 +26,7 @@ code {
 .info-container{
   display: flex;
   margin-right: 40px;
-  /* width: 500px; */
+  width: 500px;
 }
 .center-console{
   width: 300px;

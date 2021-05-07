@@ -3,7 +3,7 @@ import React from 'react';
 import 'antd/dist/antd.css'; // or 'antd/dist/antd.less'
 import 'microphone-stream';
 import io from 'socket.io-client';
-import { VictoryChart, VictoryLine, VictoryLabel, VictoryTheme, VictoryScatter, VictoryLegend } from "victory";
+import { VictoryChart, VictoryLabel, VictoryAxis, VictoryTheme, VictoryScatter, VictoryLegend } from "victory";
 import { blue, yellow, cyan, orange, green, magenta } from '@ant-design/colors';
 
 const { Option } = Select;
@@ -174,6 +174,15 @@ class App extends React.Component {
             domain={{ x: [50, 200], y: [0, 200] }}
           >
             {scatters}
+            <VictoryAxis
+              dependentAxis={true}
+              label="Volume(db)"
+              axisLabelComponent={<VictoryLabel dy={-30} />}
+            />
+            <VictoryAxis
+              label="Tempo(BPM)"
+              axisLabelComponent={<VictoryLabel dy={20} />}
+            />
           </VictoryChart>
           </div>
           <div className="flex-row">
